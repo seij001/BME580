@@ -1,0 +1,105 @@
+---
+title: "PCA Demo"
+output: html_notebook
+---
+
+In this demo, we perform PCA on a dataset that relates measurements of fetal movements, collected during Cardiotocogram exams, with fetal health. This dataset is adapted from the one obtained in this paper:
+  -Ayres de Campos et al. (2000) SisPorto 2.0 A Program for Automated Analysis of Cardiotocograms. J Matern Fetal Med 5:311-318
+
+
+```{r setup, include=FALSE}
+library(factoextra)
+library(tidyverse)
+library(corrplot)
+```
+
+First let's take a look at our dataset
+
+```{r}
+data = read.csv("fetal_health.csv")
+dim(data)
+head(data, 20)
+# Class labels:
+# 1 - Normal
+# 2 - suspect
+# 3 - pathological
+
+# Note the relationships between the columns - many measure similar things
+
+# Note that PCA is only intended for continuous numeric variables (not factors 
+# or binary values). There are other types of component analysis (such as MCA)
+# that are meant to be used with different data types
+```
+We can get an idea of how correlated this variables are to start using a correlation matrix (like we did in the ggplot demo)
+```{r}
+cor = cor(data %>% 
+            select(-fetal_health))
+corplot = corrplot(cor, method = "number", tl.cex = .6, number.cex = .8)
+```
+
+
+When performing PCA, it is important to standardize the variables to have mean zero and standard deviation one. Let's see how our unscaled and scaled data will differ during PCA.
+
+```{r}
+ivs = data %>% select(-fetal_health)
+pr_unscale = prcomp(ivs)
+pr_scale = prcomp(ivs, scale=TRUE) # Note: output is a list, not a dataframe
+# scale argument centers and scales
+```
+
+prcomp() provides us with a values:
+```{r}
+names(pr_scale)
+```
+The x matrix contains the principal component scores for each observations
+```{r}
+dim(pr_scale$x)
+
+pr_scale$x
+# If you were to use the principal component scores as inputs to a model, this is
+# the matrix you would want to use.
+```
+
+
+The rotation matrix provides the principal component loadings; each column of pr.out$rotation contains the corresponding principal component loading vector or the degree to which the feature contribute to the principal component
+
+```{r}
+pr_scale$rotation
+```
+
+Recall that the purpose of PCA is to create new, orthogonal features which are linear combinations of the original features with the goal of maximizing variance. We can visually how much of this variance is explained using a scree plot (We'll use the factoextra package to make ours)
+```{r}
+fviz_eig(pr_scale, addlabels = T, ncp = 16)
+fviz_eig(pr_unscale, addlabels = T, ncp = 16) # Why does the first PC of our unscaled data describe so much more variance than in the scaled data? Features with larger values appear to contribute more to the variance within the data compared to the smaller valued features when unscaled.
+
+# Our loadings tell us that features with larger measurement (such as baseline.value) scales tend to contribute more to the PCs than features with smaller values ranges
+pr_unscale$rotation
+```
+We can also looks at these in tabular form
+```{r}
+get_eig(pr_scale)
+```
+
+
+We can also visualize our first two PCs (which explain 54% of our cumulative variance) using a biplot. If you wished to visualize the first 3 principal components, you could create a 3D visualization with the plotly package.
+
+To create our biplot, we'll use the factoextra package
+
+```{r}
+fviz_pca_biplot(pr_scale)
+# We can observe some clusters, for example, the observations on the far left,
+# and a cluster between those and the main set of observations in the middle
+```
+If we know our class labels, we can actually take this visualization one step further 
+```{r}
+fviz_pca_biplot(pr_scale, habillage = data$fetal_health)
+```
+We can also visualize this data without the PCs
+```{r}
+# Easier data visualization using factoextra
+fviz_pca_ind(pr_scale,
+             col.ind = 'coord',
+             habillage = data$fetal_health)
+
+```
+
