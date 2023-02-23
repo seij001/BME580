@@ -1,0 +1,93 @@
+---
+title: "BME580_porject_EDA"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(corrplot)
+library(gridExtra)
+library(tidyverse)
+library(patchwork)
+```
+
+```{r}
+DataRead <- read.csv("stress_all_sensor.csv")
+head(DataRead, 10)
+# stress level: 0 = no stress; 1 = low stress; 2 = high stress
+# EDA (Data from the electrodermal activity sensor expressed as microsiemens (μS))
+# HR (extracted from the BVP, The first row is the initial time of the session expressed as unix timestamp in UTC.
+# The second row is the sample rate expressed in Hz.)
+# TEMP (Celsius (°C))
+#ACC (Data from 3-axis accelerometer sensor. The accelerometer is configured to measure acceleration in the range [-2g, 2g]. 
+# Therefore the unit in this file is 1/64g.
+# Data from x, y, and z axis are respectively in first, second, and third column.)
+```
+
+
+```{r}
+# Correlation Matrices
+
+# Select numeric variables & Remove all NA values
+numeric_df = DataRead %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3, Stress_level))
+numeric_df = numeric_df %>% drop_na()
+head(numeric_df, 10)
+
+# 1. For all stress levels
+all_stress = numeric_df %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3))
+# Construct a correlation matrix using the cor function
+corMatrix1 = cor(all_stress)
+# Correlation matrix visualization with corrplot
+corrplot(corMatrix1, method='number', order='hclust', 
+         title="Correlation Matrix for subject 7A - All Stress Levels",
+         mar=c(0,0,1,0)) # Order by angular order of eigenvalues
+
+
+# 2. For no stress
+no_stress <- filter(numeric_df, Stress_level == 0)
+no_stress = no_stress %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3))
+corMatrix2 = cor(no_stress)
+corrplot(corMatrix2, method='number', order='hclust', 
+         title="Correlation Matrix for subject 7A - No Stress",
+         mar=c(0,0,1,0))
+
+# 3. For low stress
+low_stress <- filter(numeric_df, Stress_level == 1)
+low_stress = low_stress %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3))
+corMatrix3 = cor(low_stress)
+corrplot(corMatrix3, method='number', order='hclust', 
+         title="Correlation Matrix for subject 7A - Low Stress",
+         mar=c(0,0,1,0))
+
+# 4. For high stress
+high_stress <- filter(numeric_df, Stress_level == 2)
+high_stress = high_stress %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3))
+corMatrix4 = cor(high_stress)
+corrplot(corMatrix4, method='number', order='hclust', 
+         title="Correlation Matrix for subject 7A - High Stress",
+         mar=c(0,0,1,0))
+
+```
+
+```{r}
+# Overlay the self-report (stress level and duration) to the EDA/temperature/HR to show what the data looks like.
+
+# Use 7A_1587298286 session
+Recording <- read.csv("stress_all_sensor_7A_1587298286.csv")
+head(Recording, 10)
+
+# Get time elapsed column from Time
+difftime()
+
+as.difftime(c("0:3:20", "11:23:15"))
+
+# Plot one recording, x - time; y - for different sensors
+as.numeric(z, units = "minutes")
+format(z)
+
+```
