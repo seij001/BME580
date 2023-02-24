@@ -6,7 +6,6 @@
 Our open-source training dataset comes from a study conducted by researchers at the University of Louisiana at Lafayette. You can find this original dataset in the **"Stress_dataset"** folder. The data description of the dataset can be found here: https://datadryad.org/stash/dataset/doi:10.5061/dryad.5hqbzkh6f  
 
 Hosseini, S., Gottumukkala, R., Katragadda, S. et al. A multimodal sensor dataset for continuous stress detection of nurses in a hospital.Sci Data 9, 255 (2022). https://doi.org/10.1038/s41597-022-01361-y
-[7]Chen, W., Zheng, S., Sun, X. (2021). Introducing MDPSD, a Multimodal Dataset for Psychological Stress Detection. In: , et al. Big Data. BigData 2020. Communications in Computer and Information Science, vol 1320. Springer, Singapore. https://doi.org/10.1007/978-981-16-0705-9_5
 
 
 ## Files Included and Instructions to Run
