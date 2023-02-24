@@ -1,0 +1,95 @@
+---
+title: "Proposal Graphs"
+author: "Achudh Balaraman"
+output: html_document
+date: "2023-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(psych) 
+library(tidyverse)
+library(gridExtra)
+library(corrplot)
+library(patchwork)
+library(scales)
+library(readxl)
+```
+
+
+```{r}
+path = "/Users/Achudh/Desktop/BME 580/Project Work/stress_all_sensor.csv"
+stress = read.csv(path)
+
+path2 = "/Users/Achudh/Desktop/BME 580/Project Work/doi_10/SurveyResults.xlsx"
+survey = read_excel(path2)
+
+summary(survey)
+survey$`Stress level` = na_if(survey$`Stress level`,"na")
+survey <- survey %>% drop_na()
+survey$`Stress level` = factor(survey$`Stress level`, levels = c(0,1,2))
+levels(survey$`Stress level`) <- c("No Stress", "Low", "High")
+survey$durationhours <- as.numeric(format(as.POSIXct(survey$duration), format =  "%H"))
+survey$durationminutes <- as.numeric(format(as.POSIXct(survey$duration), format =  "%M"))
+survey <- survey %>% mutate(totalDuration = (60*durationhours)+durationminutes)
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+Allstress = ggplot(survey, aes(x = ID, y = totalDuration)) + 
+  geom_bar(aes(fill = `Stress level`), position = position_stack(reverse = TRUE), stat = "identity")+
+  labs(title = "Distribution of Stress Levels for each Patient", y = "Stress Duration (minutes)", x = "Subject") + scale_fill_manual(values=c('forestgreen', 'orange', 'darkred')) + theme(text=element_text(family="Times New Roman", face="bold", size=12))
+Allstress
+ggsave("Allstress.png")
+```
+One histogram of one subjects stress levels/HR/EDA/Temperature across all events (3 plots)
+
+```{r}
+None7a = stress %>% filter(Stress_level == 0)
+Med7a = stress %>% filter(Stress_level == 1)
+High7a = stress %>% filter(Stress_level == 2)
+
+summary(stress$Stress_level) 
+stress$Stress_level <- replace(stress$Stress_level,stress$Stress_level == 'na',NA)
+stress <- stress %>% drop_na()
+stress$Stress_level = factor(stress$Stress_level, levels = c(0,1,2))
+levels(stress$Stress_level) <- c("No Stress", "Low", "High")
+```
+
+
+```{r}
+# Nhr = ggplot(None7a, aes(x = HR))+
+#   geom_histogram(color = "black", fill = "lightpink") + labs(title = "Heartrates Across All No stress Events", subtitle = "Patient 7a", x = "Heartrate (BPM)")
+# Mhr = ggplot(Med7a, aes(x = HR))+
+#   geom_histogram(color = "black", fill = "hotpink") + labs(title = "Heartrates Across All Medium stress Events", subtitle = "Patient 7a", x = "Heartrate (BPM)")
+# Hhr = ggplot(High7a, aes(x = HR))+
+#   geom_histogram(color = "black", fill = "purple") + labs(title = "Heartrates Across All High stress Events", subtitle = "Patient 7a", x = "Heartrate (BPM)")
+# Nhr
+# Mhr
+# Hhr
+# 
+# Neda = ggplot(None7a, aes(x = EDA))+
+#   geom_histogram(color = "black", fill = "green2") + labs(title = "EDA Across All No stress Events", subtitle = "Patient 7a", x = "EDA (µS)")
+# Meda = ggplot(Med7a, aes(x = EDA))+
+#   geom_histogram(color = "black", fill = "green3") + labs(title = "EDA Across All Medium stress Events", subtitle = "Patient 7a", x = "EDA (µS)")
+# Heda = ggplot(High7a, aes(x = EDA))+
+#   geom_histogram(color = "black", fill = "green4") + labs(title = "EDA Across All High stress Events", subtitle = "Patient 7a", x = "EDA (µS)")
+# Neda
+# Meda
+# Heda
+HRdens = ggplot(stress, aes(x = HR, fill = Stress_level)) +
+  geom_density(alpha = 0.3) + labs(x = "Heartrate (BPM)") + theme(legend.position = "none", text=element_text(family="Times New Roman", face="bold", size=12))
+EDAdens = ggplot(stress, aes(x = EDA, fill = Stress_level)) +
+  geom_density(alpha = 0.3) + labs(x = "EDA (µS)", y = "") + theme(legend.position = "none", text=element_text(family="Times New Roman", face="bold", size=12))
+Tempdens = ggplot(stress, aes(x = TEMP, fill = Stress_level)) +
+  geom_density(alpha = 0.3) + labs(x = "Temperature (°C)", y = "") + theme(text=element_text(family="Times New Roman", face="bold", size=12))
+
+Density7a = (HRdens+EDAdens+Tempdens)+plot_annotation(title = "Distribution of Sensor Data Across All Events", subtitle = "Patient 7a") & theme(text=element_text(family="Times New Roman", face="bold", size=12))
+Density7a
+ggsave("Density7a.png", plot = Density7a)
+```
