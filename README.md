@@ -1,9 +1,9 @@
-# BME 580 roject - Building a Model to Study Stress Using Wearable Sensors
+# BME 580 project - Building a Model to Study Stress Using Wearable Sensors
 **Author**: Seijung Kim, Jiayue Liu, Achudh Balaraman
 **GitHub repo**: seij001/BME580
 
 ## Database Information
-Our open-source training dataset comes from a study conducted by researchers at the University of Louisiana at Lafayette. You can find this original dataset in the **"Stress_dataset"** folder. The data description of the dataset can be found here: https://datadryad.org/stash/dataset/doi:10.5061/dryad.5hqbzkh6f  
+Our open-source training dataset comes from a study conducted by researchers at the University of Louisiana at Lafayette. You can find this original dataset in the **"Stress_dataset"** folder. The data description of the dataset can be found here: https://datadryad.org/stash/dataset/doi:10.5061/dryad.5hqbzkh6f. This dataset also has an associated publication: https://www.nature.com/articles/s41597-022-01361-y  
 
 Hosseini, S., Gottumukkala, R., Katragadda, S. et al. A multimodal sensor dataset for continuous stress detection of nurses in a hospital.Sci Data 9, 255 (2022). https://doi.org/10.1038/s41597-022-01361-y
 
