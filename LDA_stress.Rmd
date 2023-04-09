@@ -1,0 +1,138 @@
+---
+title: "PCA Demo"
+output: html_notebook
+---
+
+Copied frm demo in class, use this analysis on the stress data
+
+```{r setup, include=FALSE}
+library(factoextra)
+library(tidyverse)
+library(corrplot)
+```
+
+First let's take a look at our dataset
+
+```{r}
+data = read.csv("data_train.csv")
+data_test  = read.csv("data_test.csv")
+
+dim(data)
+head(data, 10)
+summary(data)
+
+data = subset(data, select = -c(X,Timestamp,date,time,sID))
+data_test = subset(data_test, select = -c(X,Timestamp,date,time,sID))
+```
+
+```{r}
+summary(data)
+data = data[data$Stress_level != 'Missing',]
+data_test = data_test[data_test$Stress_level != 'Missing',]
+```
+
+
+```{r}
+
+data$Stress_level <- replace(data$Stress_level,data$Stress_level == 'na',NA)
+data$Stress_level <- replace(data$Stress_level,data$Stress_level == 2,1)
+data_test$Stress_level <- replace(data_test$Stress_level,data_test$Stress_level == 2,1)
+
+data =drop_na(data)
+
+# data$Stress_level = factor(data$Stress_level, levels = c(0,1,2))
+# levels(data$Stress_level) <- c("No Stress", "Low Stress", "High Stress")
+# 
+# data_test$Stress_level = factor(data_test$Stress_level, levels = c(0,1,2))
+# levels(data_test$Stress_level) <- c("No Stress", "Low Stress", "High Stress")
+
+
+data$Stress_level = factor(data$Stress_level, levels = c(0,1))
+levels(data$Stress_level) <- c("No Stress", "Yes Stress")
+
+data_test$Stress_level = factor(data_test$Stress_level, levels = c(0,1))
+levels(data_test$Stress_level) <- c("No Stress", "Yes Stress")
+summary(data)
+```
+```{r}
+# scale the data
+data_st = data %>% dplyr::select(-c('Stress_level'))
+trainMean = apply(data%>% dplyr::select(-c('Stress_level')) ,2,mean)
+trainSd = apply(data%>% dplyr::select(-c('Stress_level')) ,2,sd)
+
+data_st = sweep(sweep(data_st, 2L, trainMean), 2, trainSd, "/")
+summary(data_st)
+data_test_st = sweep(sweep(data_test%>% dplyr::select(-c('Stress_level')), 2L, trainMean), 2, trainSd, "/")
+
+data_st$Stress_level = data$Stress_level
+data_test_st$Stress_level = data_test$Stress_level
+```
+
+```{r}
+library(caret)
+library(ROCR)
+folds <-createFolds(y=data$Stress_level, k=5, 
+                    list=TRUE, returnTrain=TRUE) # or return test
+sapply(folds, length)
+
+acc_sum = 0
+auc_sum = 0
+
+for (fold in folds){
+  k = as.integer(sqrt(length(fold)))
+  training_k = data[fold,]
+  testing_k = data[-fold,]
+  
+  ldaMod_cv = lda(Stress_level ~., data = training_k)
+  
+  ldaPred = predict(ldaMod_cv, testing_k)
+  
+  predClass_cv = ldaPred$class
+  pred = prediction(as.numeric(ldaPred$class),as.numeric(testing_k$Stress_level))
+  # perf <- performance(pred, "tpr", "fpr")
+  # plot(perf,main='ROC curve')
+  auc_ROCR = performance(pred, measure = "auc")
+  auc_ROCR =  auc_ROCR@y.values[[1]]
+  
+  tab = table(Predicted = predClass_cv, Actual = testing_k$Stress_level)
+  accuracy = (tab['No Stress','No Stress'] + tab['Yes Stress','Yes Stress'])/sum(tab)
+  acc_sum  = acc_sum + accuracy
+  auc_sum = auc_sum + auc_ROCR
+  # print(auc_ROCR)
+  
+}
+print(acc_sum/5)
+print(auc_sum/5)
+
+
+
+
+
+
+
+# 
+# predClass
+# confusionTab = table(Predicted = predClass, Actual = data_test$Stress_level)
+# confusionTab
+
+```
+```{r}
+
+ldaMod = lda(Stress_level ~., data = data_st)
+  
+ldaPred = predict(ldaMod, data_test_st)
+  
+predClass = ldaPred$class
+pred = prediction(as.numeric(ldaPred$class),as.numeric(data_test_st$Stress_level))
+
+auc_ROCR = performance(pred, measure = "auc")
+auc_ROCR =  auc_ROCR@y.values[[1]]
+  
+tab = table(Predicted = predClass, Actual = data_test_st$Stress_level)
+accuracy = (tab['No Stress','No Stress'] + tab['Yes Stress','Yes Stress'])/sum(tab)
+
+print(accuracy)
+print(auc_ROCR)
+  
+```
+
