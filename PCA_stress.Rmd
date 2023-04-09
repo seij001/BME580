@@ -117,3 +117,18 @@ fviz_pca_ind(pr_scale,
 
 ```
 
+
+```{r}
+library(dplyr)
+trainingDF = read.csv('data_train.csv')
+trainingDF = trainingDF %>% dplyr::select(c(sID,Stress_level))
+ggplot(data=trainingDF, aes(x=sID, fill=Stress_level)) +
+  geom_bar()
+
+```
+```{r}
+testingDF = read.csv('data_test.csv')
+testingDF = testingDF %>% dplyr::select(c(sID,Stress_level))
+ggplot(data=testingDF, aes(x=sID, fill=Stress_level)) +
+  geom_bar()
+```
