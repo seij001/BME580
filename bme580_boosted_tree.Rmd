@@ -1,0 +1,111 @@
+---
+title: "Boosted_decision_tree"
+output: html_document
+date: "2023-04-10"
+---
+
+
+
+```{r setup, include=FALSE}
+library(MASS) # includes two pima datasets
+library(dplyr)
+library(corrplot)
+library(tree)
+library(randomForest)
+library(stringr)
+library(caret)
+library(ggplot2)
+library(gbm)
+set.seed(2022) # used to guarantee same random values are produced when rerunning code
+```
+
+```{r}
+# Load data
+Data_train <- read.csv("data_train.csv")
+head(Data_train, 10)
+
+Data_test <- read.csv("data_test.csv")
+head(Data_test, 10)
+```
+
+```{r}
+# Yes = 1 & 2
+# No = 0
+# Unknown = Missing
+
+# Before running the decision tree, need to make the stress level binary
+# Make two dummy variables that represent this discrimination: 
+# (a)(Yes stress + unknown) vs. no stress 
+# (b) Yes stress vs. (no stress + unknown).
+# Have these in separate dataframes
+
+
+# Remove missing values in the training and test sets
+Data_train <- Data_train %>% filter(Stress_level != "Missing")
+Data_test <- Data_test %>% filter(Stress_level != "Missing")
+
+# Create Yes(1) and No(0) stress categories
+# By replace all 2 with 1
+Data_train$Stress_level <- str_replace(Data_train$Stress_level, "2", "1")
+Data_test$Stress_level <- str_replace(Data_test$Stress_level, "2", "1")
+
+Data_train # 43,716 rows
+Data_test # 13,388 rows
+```
+
+```{r}
+# Remove columns: X, Timestamp, Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std, sID, date, time
+Train <- subset(Data_train, select = -c(X, Timestamp, Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std,
+                                Acc3_Mean, Acc3_Std, sID, date, time) )
+Test <- subset(Data_test, select = -c(X, Timestamp, Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std,
+                                Acc3_Mean, Acc3_Std, sID, date, time) )
+
+# Convert data types: Stress_level to factor
+Train$Stress_level <- as.factor(Train$Stress_level)
+Test$Stress_level <- as.factor(Test$Stress_level)
+
+Train
+Test
+
+```
+
+```{r}
+# Boosted Decision Tree
+# https://towardsdatascience.com/using-gradient-boosting-machines-for-classification-in-r-b22b2f8ec1f1
+
+# for binomial classification
+# Create a gradient boost model and train on training data
+model_gbm = gbm(Stress_level~.,
+              data = Train,
+              distribution = "bernoulli",
+              cv.folds = 5,
+              shrinkage = .01, # learning rate, step size reduction
+              n.minobsinnode = 5, # min num of observations in the terminal nodes
+                                   # of the trees, can be lowered for small sample
+              n.trees = 100) # 500 tress to be built
+
+summary(model_gbm)
+
+# shrinkage is used for reducing, or shrinking, the impact of each additional fitted base-learner (tree). It reduces the size of incremental steps and thus penalizes the importance of each consecutive iteration
+```
+
+```{r}
+# use model to make predictions on test data
+pred_test = predict.gbm(object = model_gbm,
+                   newdata = Test,
+                   n.trees = 100,           # 500 tress to be built
+                   type = "response")
+
+pred_test
+
+# Give class names to the highest prediction value.
+class_names = colnames(pred_test)[apply(pred_test, 1, which.max)]
+result = data.frame(Test$Stress_level, class_names)
+ 
+print(result)
+
+# Create confusion matrix
+conf_mat = confusionMatrix(Test$Stress_level, as.factor(class_names))
+print(conf_mat)
+
+```
