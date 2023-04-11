@@ -27,91 +27,86 @@ library(hms)
 #write.csv(Data, "data_processed.csv", row.names=FALSE)
 
 
-DataRead <- read.csv("data_processed.csv")
+DataRead <- read.csv("data_train.csv")
+head(DataRead, 10)
 ```
 
 ```{r}
 # Recreating Correlation Matrices, also include missing stress level data
+# Also get summary statistics
 
 # Select numeric variables
-numeric_df = DataRead %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std, Stress_level))
+numeric_df = DataRead %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std, Stress_level))
 # numeric_df = numeric_df %>% drop_na()
 head(numeric_df, 10)
 
 # 0. For missing stress levels
 miss_stress <- filter(numeric_df, Stress_level == "Missing")
-miss_stress = miss_stress %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std))
+miss_stress = miss_stress %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std))
 corMatrix0 = cor(miss_stress)
 par(family="Times New Roman")
-p0 = {corrplot(corMatrix0, method='number', order='hclust', 
+p0 = corrplot(corMatrix0, method='number', order='hclust', 
          title="Correlation Matrix for subject 7A - Missing Info About Stress Level", 
-         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0));
-recordPlot()}
+         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0))
+#recordPlot()
 
 # 1. For all stress levels
 all_stress <- filter(numeric_df, Stress_level == 0 | Stress_level == 1 | Stress_level == 2)
-all_stress = all_stress %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std))
+all_stress = all_stress %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std))
 # Construct a correlation matrix using the cor function
 corMatrix1 = cor(all_stress)
 # par(mfrow=c(1,2))
-# Correlation matrix visualization with corrplot
-p1 = {corrplot(corMatrix1, method='number', order='hclust', 
+p1 = corrplot(corMatrix1, method='number', order='hclust', 
          title="Correlation Matrix for subject 7A - All Stress Levels",
-         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0));
-recordPlot()}
+         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0))
+#recordPlot()
 
 # 2. For no stress
 no_stress <- filter(numeric_df, Stress_level == 0)
-no_stress = no_stress %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std))
+no_stress = no_stress %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std))
 corMatrix2 = cor(no_stress)
-p2 = {corrplot(corMatrix2, method='number', order='hclust', 
+p2 = corrplot(corMatrix2, method='number', order='hclust', 
          title="Correlation Matrix for subject 7A - No Stress",
-         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0));
-recordPlot()}
+         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0))
+#recordPlot()
 
 # 3. For low stress
 low_stress <- filter(numeric_df, Stress_level == 1)
-low_stress = low_stress %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std))
+low_stress = low_stress %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std))
 corMatrix3 = cor(low_stress)
-p3 = {corrplot(corMatrix3, method='number', order='hclust', 
+p3 = corrplot(corMatrix3, method='number', order='hclust', 
          title="Correlation Matrix for subject 7A - Low Stress Level", 
-         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0));
-recordPlot()}
+         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0))
+#recordPlot()
 
 # 4. For high stress
 high_stress <- filter(numeric_df, Stress_level == 2)
-high_stress = high_stress %>% dplyr::select(c(EDA_Mean, EDA_Min, EDA_Max, EDA_Std, EDA_Kurtosis,
-                                   EDA_Skew, EDA_Num_Peaks, EDA_Amphitude, EDA_Duration, 
-                                   HR_Mean, HR_Min, HR_Max, HR_Std, HR_RMS,
-                                   temp_Mean, temp_Min, temp_Max, temp_Std))
+high_stress = high_stress %>% dplyr::select(c(EDA_Mean, EDA_Std, EDA_Num_Peaks, 
+                                   HR_Mean, HR_Std, Temp_Mean, Temp_Std, Acc1_Mean,
+                                   Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean, Acc3_Std))
 corMatrix4 = cor(high_stress)
-p4 = {corrplot(corMatrix4, method='number', order='hclust', 
+p4 = corrplot(corMatrix4, method='number', order='hclust', 
          title="Correlation Matrix for subject 7A - High Stress Level",
-         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0));
-recordPlot()}
+         tl.cex = 0.6, number.cex = 0.6, mar=c(0,0,1,0))
+#recordPlot()
 
 #Corplot = (p1 + p2) / (p3 + p4)
 
-ggsave("correlations0.png", plot = replayPlot(p0))
-ggsave("correlations1.png", plot = replayPlot(p1))
-ggsave("correlations2.png", plot = replayPlot(p2))
-ggsave("correlations3.png", plot = replayPlot(p3))
-ggsave("correlations4.png", plot = replayPlot(p4))
+#ggsave("correlations0.png", plot = replayPlot(p0))
+#ggsave("correlations1.png", plot = replayPlot(p1))
+#ggsave("correlations2.png", plot = replayPlot(p2))
+#ggsave("correlations3.png", plot = replayPlot(p3))
+#ggsave("correlations4.png", plot = replayPlot(p4))
 
 ```
 
@@ -123,10 +118,42 @@ HRdens = ggplot(DataRead, aes(x = HR_Mean, fill = Stress_level)) +
   geom_density(alpha = 0.3) + labs(x = "Heartrate (BPM)") + theme(legend.position = "none", text=element_text(family="Times New Roman", face="bold", size=12))
 EDAdens = ggplot(DataRead, aes(x = EDA_Mean, fill = Stress_level)) +
   geom_density(alpha = 0.3) + labs(x = "EDA (µS)", y = "") + theme(legend.position = "none", text=element_text(family="Times New Roman", face="bold", size=12))
-Tempdens = ggplot(DataRead, aes(x = temp_Mean, fill = Stress_level)) +
+Tempdens = ggplot(DataRead, aes(x = Temp_Mean, fill = Stress_level)) +
   geom_density(alpha = 0.3) + labs(x = "Temperature (°C)", y = "") + theme(text=element_text(family="Times New Roman", face="bold", size=12))
 
 Density_plot = (HRdens+EDAdens+Tempdens)+plot_annotation(title = "Distribution of Sensor Data Across All Events", subtitle = "For Training Data Set") & theme(text=element_text(family="Times New Roman", face="bold", size=12))
 Density_plot
 ggsave("Density_graphs.png", plot = Density_plot)
+```
+
+
+
+```{r}
+# Get summary statistics for each dataframe
+print("Missing stress level")
+#miss_stress
+#summary(miss_stress)
+skewness(miss_stress)
+kurtosis(miss_stress)
+
+print("All stress level")
+#all_stress <- filter(numeric_df, Stress_level == 0 | Stress_level == 1 | Stress_level == 2)
+#summary(all_stress)
+skewness(all_stress)
+kurtosis(all_stress)
+
+print("No stress level")
+#summary(no_stress)
+skewness(no_stress)
+kurtosis(no_stress)
+
+print("Low stress level")
+#summary(low_stress)
+skewness(low_stress)
+kurtosis(low_stress)
+
+print("High stress level")
+#summary(high_stress)
+skewness(high_stress)
+kurtosis(high_stress)
 ```
