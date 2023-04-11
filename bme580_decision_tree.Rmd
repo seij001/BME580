@@ -15,6 +15,7 @@ library(stringr)
 library(caret)
 library(ggplot2)
 library(gbm)
+library(ROCR)
 set.seed(2022) # used to guarantee same random values are produced when rerunning code
 ```
 
@@ -77,7 +78,6 @@ ncol(Train)
 
 
 
-
 ```{r}
 # Random Forests (version with no k-fold cross validation)
 
@@ -107,7 +107,7 @@ for (mtry  in 1:7){
   fit = randomForest(Stress_level~., data = Train, mtry = mtry, ntree=500)
   oob.err[mtry] = fit$err.rate[500]
   pred = predict(fit, Test)
-  test.err[mtry]=sum(ifelse(pred==Test$Stress_level, 1, 0))
+  test.err[mtry]= length(Test$Stress_level) - sum(ifelse(pred==Test$Stress_level, 1, 0))
 }
 
 # After each iter, stepFactor determines how much mtry is increased
@@ -123,10 +123,73 @@ plot(test.err)
 ```
 
 
+
 ```{r}
-test.err
+# Apply K-fold cross validation to Random Forest (to "data_train.csv")
+folds <-createFolds(y=Train$Stress_level, k=5, 
+                    list=TRUE, returnTrain=TRUE) # or return test
+sapply(folds, length)
+
+acc_sum = 0
+auc_sum = 0
+
+for (fold in folds){
+  # Divide train and test set
+  k = as.integer(sqrt(length(fold)))
+  training_k = Train[fold,]
+  testing_k = Train[-fold,]
+  
+  # Train model
+  rf.pima = randomForest(Stress_level~., data = training_k, mtry = sqrt(7), ntree = 500)
+
+  rfPreds = predict(rf.pima, testing_k)
+  pred = prediction(as.numeric(rfPreds),as.numeric(testing_k$Stress_level))
+  
+  plot(rf.pima)  # find min error rate and return number of trees used in min error rate
+  which.min(rf.pima$err.rate)
+  oob.err = double(7)
+  test.err = double(7)
+  
+  for (mtry  in 1:7){
+  fit = randomForest(Stress_level~., data = training_k, mtry = mtry, ntree=500)
+  oob.err[mtry] = fit$err.rate[500]
+  pred = predict(fit, testing_k)
+  test.err[mtry]= length(testing_k$Stress_level) - sum(ifelse(pred==testing_k$Stress_level, 1, 0))
+  # changed code to get observations misclassified instead of correctly classified
+  }
+
+  # After each iter, stepFactor determines how much mtry is increased
+  # improve indicates the amount that oob error must decrease for the mtry search to continue
+  tuner = tuneRF(training_k[1:7], training_k$Stress_level, # specify train and test data
+                stepFactor = .5, # how much you increase mtry
+                plot=T,
+                ntreeTry = 500,
+                improve = 0.1) # oob error must decrease at least 0.1 for mtry search to continue
+  plot(oob.err)
+  plot(test.err)
+  
+  # Get AUC
+  pred = prediction(as.numeric(rfPreds),as.numeric(testing_k$Stress_level))
+  auc_ROCR = performance(pred, measure = "auc")
+  auc_ROCR =  auc_ROCR@y.values[[1]]
+  
+  # Get accuracy
+  tab = table(Predicted = rfPreds, Actual = testing_k$Stress_level)
+  accuracy = (tab[0,0] + tab[1,1])/sum(tab)
+  
+  acc_sum  = acc_sum + accuracy
+  auc_sum = auc_sum + auc_ROCR
+}
+print(acc_sum/5)
+print(auc_sum/5)
 
 ```
+
+```{r}
+# Looking at the test.err graphs for all 5 runs,
+# Minimum # of misclassification that mtry = 5, 6, 5, 6, 5
+```
+
 
 ```{r}
 # Analyze accuracy for Random Forest (if tuned well, can have much less overfitting than regular decision tree)
@@ -134,6 +197,7 @@ test.err
 optRf = randomForest(Stress_level~., data = Train, mtry = 5, ntree = 500)
 optPreds = predict(optRf, Test)
 opt_rf_acc = sum(ifelse(optPreds==Test$Stress_level, 1, 0)) / nrow(Test)
+# Make confusion matrix
 table(Predicted = optPreds, Actual = Test$Stress_level)
 
 varImpPlot(optRf,
@@ -156,44 +220,73 @@ hist(treesize(optRf),
 ```{r}
 # Calculate accuracy
 # Accuracy = (true positive + true negative) / total cases = # guessed correctly/ # total data
-Accuracy = (10335 + 1091) / 13388
+Accuracy = (10334 + 1091) / 13388
 Accuracy # 0.8534509
   
 # Calculate missclassificaiton rate
 # Misclassification rate = (false positive + false negative) / total cases
 Miss = 1 - Accuracy
 Miss # 0.1465491
+
+# Find AUC
+pred = prediction(as.numeric(optPreds),as.numeric(Test$Stress_level))
+
+auc_ROCR = performance(pred, measure = "auc")
+auc_ROCR =  auc_ROCR@y.values[[1]]
+  
+print(auc_ROCR)
+
+# Sensitivity = true positive rate = TP/P_total = TP/(TP+FN)
+Sensitivity = 10334/(10334+418)
+Sensitivity
 ```
 
 
+
 ```{r}
-# Apply K-fold cross validation to Random Forest (to "data_train.csv")
-# k = 5
-# Use "data_test.csv" for the final testing and report accuracy for this dataset
+# Calculate relative importance of sensors
+results = importance(optRf)
 
-# https://stackoverflow.com/questions/66711347/random-forest-oob-for-k-fold-cross-validation
-# Define cross validation with 5 folds (https://www.statology.org/k-fold-cross-validation-in-r/)
-ctrl <- trainControl(method= 'cv', number=5)
+# Combine EDA importance
+EDA_sum = results['EDA_Mean',] + results['EDA_Std',] + results['EDA_Num_Peaks',]
+HR_sum = results['HR_Mean',] + results['HR_Std',]
+Temp_sum = results['Temp_Mean',] + results['Temp_Std',]
 
-# Random Forest Model
-rf.pima = randomForest(Stress_level~., data = Train, mtry = sqrt(7), ntree = 500) # 500 is default
-rf.pima
+# Convert to relative importance
+total = EDA_sum + HR_sum + Temp_sum
+EDA_im = EDA_sum/total
+EDA_im
+HR_im = HR_sum/total
+HR_im
+Temp_im = Temp_sum/total
+Temp_im
+```
 
 
-## Train a random forest model
-forest <- train(
-        Stress_level~., 
-        data=Train, 
-        
-        # `rf` method for random forest
-        method='rf', 
-        
-        # Add repeated cross validation as trControl
-        trControl=repeat_cv,
-        
-        # Accuracy to measure the performance of the model
-        metric='Accuracy')
 
-## Print out the details about the model
-forest$finalModel
+
+```{r}
+# Analyze accuracy for Random Forest (if tuned well, can have much less overfitting than regular decision tree)
+
+optRf = randomForest(Stress_level~., data = Train, mtry = 6, ntree = 500)
+optPreds = predict(optRf, Test)
+opt_rf_acc = sum(ifelse(optPreds==Test$Stress_level, 1, 0)) / nrow(Test)
+# Make confusion matrix
+table(Predicted = optPreds, Actual = Test$Stress_level)
+
+varImpPlot(optRf,
+           sort = T,
+           n.var=7,
+           main = 'Top Variables')
+
+# Determine variable importance
+
+# For classification, use GINI (a measure of node impurity) 
+importance(optRf)
+
+hist(treesize(optRf),
+     main = "No. of Nodes for the Trees",
+     col = "green")
+
+# GINI is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. The higher the value of mean decrease accuracy or mean decrease Gini score, the higher the importance of the variable in the model. (https://plos.figshare.com/articles/figure/Variable_importance_plot_mean_decrease_accuracy_and_mean_decrease_Gini_/12060105/1#:~:text=The%20mean%20decrease%20in%20Gini,the%20variable%20in%20the%20model.)
 ```

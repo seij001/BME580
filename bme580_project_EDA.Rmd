@@ -137,30 +137,30 @@ EDA_plot
 ```{r}
 Stress_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = Stress_level, color="Stress Level"), color = "purple")+
-  theme(text = element_text(family="Times New Roman", face="bold", size=9))+
+  theme(text = element_text(family="Times New Roman", face="bold", size=14))+
   labs(title = "Stress Level in One Recording Session",
-       x = "", y = "Stress_level", color = "Legend")
+       x = "", y = "Stress", color = "Legend")
 
 EDA_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = EDA, color = "EDA"), color = "pink")+
-  theme(text = element_text(family="Times New Roman", face="bold", size=9))+
+  theme(text = element_text(family="Times New Roman", face="bold", size=14))+
   labs(title = "EDA in One Recording Session",
-       x = "", y = "Electrodermal activity (μS)", color = "Legend")
+       x = "", y = "EDA (μS)", color = "Legend")
 
 HR_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = HR, color = "HR"), color = "blue")+
-  theme(text = element_text(family="Times New Roman", face="bold", size=9))+
+  theme(text = element_text(family="Times New Roman", face="bold", size=14))+
   labs(title = "Heart Rate in One Recording Session",
-       x = "", y = "Heart rate (bpm)", color = "Legend")
+       x = "", y = "HR (bpm)", color = "Legend")
 
 Temp_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = TEMP, color = "Skin temperature"), color = "green")+
-  theme(text = element_text(family="Times New Roman", face="bold", size=9))+
+  theme(text = element_text(family="Times New Roman", face="bold", size=14))+
   labs(title = "Skin Temperature in One Recording Session",
-       x = "Time Elapsed (Seconds)", y = "Temperature (°C)")
+       x = "Time Elapsed (Seconds)", y = "Temp. (°C)")
 
 Plot = Stress_plot / EDA_plot/ HR_plot / Temp_plot
-
-ggsave("sensors.png", plot = Plot)
+Plot
+ggsave("sensors.png", plot = Plot, width = 6, height = 6, dpi=300)
 
 ```
