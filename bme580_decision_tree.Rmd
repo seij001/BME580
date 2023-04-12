@@ -6,7 +6,7 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-library(MASS) # includes two pima datasets
+library(MASS)
 library(dplyr)
 library(corrplot)
 library(tree)
@@ -21,10 +21,10 @@ set.seed(2022) # used to guarantee same random values are produced when rerunnin
 
 ```{r}
 # Load data
-Data_train <- read.csv("data_train.csv")
+Data_train <- read.csv("data_train_woMiss.csv")
 head(Data_train, 10)
 
-Data_test <- read.csv("data_test.csv")
+Data_test <- read.csv("data_test_woMiss.csv")
 head(Data_test, 10)
 ```
 
@@ -188,6 +188,7 @@ print(auc_sum/5)
 ```{r}
 # Looking at the test.err graphs for all 5 runs,
 # Minimum # of misclassification that mtry = 5, 6, 5, 6, 5
+# Use mtry=5 first
 ```
 
 
@@ -220,7 +221,7 @@ hist(treesize(optRf),
 ```{r}
 # Calculate accuracy
 # Accuracy = (true positive + true negative) / total cases = # guessed correctly/ # total data
-Accuracy = (10334 + 1091) / 13388
+Accuracy = (10692 + 1212) / 13847
 Accuracy # 0.8534509
   
 # Calculate missclassificaiton rate
@@ -237,7 +238,7 @@ auc_ROCR =  auc_ROCR@y.values[[1]]
 print(auc_ROCR)
 
 # Sensitivity = true positive rate = TP/P_total = TP/(TP+FN)
-Sensitivity = 10334/(10334+418)
+Sensitivity = 10692/(10692+883)
 Sensitivity
 ```
 
@@ -288,5 +289,5 @@ hist(treesize(optRf),
      main = "No. of Nodes for the Trees",
      col = "green")
 
-# GINI is a measure of how each variable contributes to the homogeneity of the nodes and leaves in the resulting random forest. The higher the value of mean decrease accuracy or mean decrease Gini score, the higher the importance of the variable in the model. (https://plos.figshare.com/articles/figure/Variable_importance_plot_mean_decrease_accuracy_and_mean_decrease_Gini_/12060105/1#:~:text=The%20mean%20decrease%20in%20Gini,the%20variable%20in%20the%20model.)
+# The version with mtry=6 has lower accuracy. Therefore keep using mtry=5.
 ```
