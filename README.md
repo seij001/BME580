@@ -17,4 +17,5 @@ Currently, the R scripts for our pre-processing and Exploratory Data Analysis ar
 2. **bme580_project_EDA.Rmd** - RMD file where Seijung performed EDA. This Rmd file includes correlation matrices of different sensor modalities at different stress levels and a sample plot of sensor recordings (for EDA, HR, and skin temperature) and self-reported stress levels over the duration of a recording session.
 * Please make sure to download **stress_all_sensor.csv** and **stress_all_sensor_7A_1587298286.csv** along with the Rmd file.
 3. **PCA_stress.Rmd** : Jiayue's script for PCA. performs PCA analysis on the stress dataset. You need **stress_all_sensor.csv** file to run this code. 
-4. **Preprocessing.ipynb**: the code for combining all sensor data and survey results. Make sure you download the **7A folder** and **SurveyResults.xlsx** to run this code. 
+4. **Preprocessing.ipynb**: the code for combining all sensor data and survey results. Make sure you download the **Stress_dataset** (and unzip all the indivisual folders) and **SurveyResults.xlsx** to run this code. This code generates **data_train_woMiss** and **data_test_woMiss.csv** files. 
+5. **LDA_stress.Rmd** : script for the LDA analysis, make sure you download the **data_train_woMiss.csv** and **data_test_woMiss.csv** to run this code. 
