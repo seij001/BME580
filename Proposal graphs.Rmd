@@ -19,10 +19,10 @@ library(readxl)
 
 
 ```{r}
-path = "stress_all_sensor.csv"
+path = "/Users/Achudh/Desktop/BME 580/Project Work/stress_all_sensor.csv"
 stress = read.csv(path)
 
-path2 = "SurveyResults.xlsx"
+path2 = "/Users/Achudh/Desktop/BME 580/Project Work/doi_10/SurveyResults.xlsx"
 survey = read_excel(path2)
 
 summary(survey)
@@ -43,7 +43,7 @@ You can also embed plots, for example:
 ```{r pressure, echo=FALSE}
 Allstress = ggplot(survey, aes(x = ID, y = totalDuration)) + 
   geom_bar(aes(fill = `Stress level`), position = position_stack(reverse = TRUE), stat = "identity")+
-  labs(title = "Distribution of Stress Levels for Each Patient", y = "Stress Duration (minutes)", x = "Subject") + scale_fill_manual(values=c('forestgreen', 'orange', 'darkred')) + theme(text=element_text(family="Times New Roman", face="bold", size=19))
+  labs(title = "Distribution of Stress Levels for each Patient", y = "Stress Duration (minutes)", x = "Subject") + scale_fill_manual(values=c('forestgreen', 'orange', 'darkred')) + theme(text=element_text(family="Times New Roman", face="bold", size=12))
 Allstress
 ggsave("Allstress.png")
 ```
@@ -56,6 +56,7 @@ High7a = stress %>% filter(Stress_level == 2)
 
 summary(stress$Stress_level) 
 stress$Stress_level <- replace(stress$Stress_level,stress$Stress_level == 'na',NA)
+stress <- stress %>% drop_na()
 stress$Stress_level = factor(stress$Stress_level, levels = c(0,1,2))
 levels(stress$Stress_level) <- c("No Stress", "Low", "High")
 ```

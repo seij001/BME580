@@ -1,0 +1,123 @@
+---
+title: "LassoModel"
+author: "Achudh Balaraman using LR/LDA demo by Zachary Quinn"
+output: html_document
+date: "2023-04-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(caret)
+library(pROC)
+library(psych) 
+library(tidyverse)
+library(gridExtra)
+library(corrplot)
+library(patchwork)
+library(scales)
+library(readxl)
+library(glmnet)
+```
+
+## R Markdown
+
+
+```{r}
+#Define predictor and response variables
+train = read.csv("data_train_woMiss.csv")
+test = read.csv("data_test_woMiss.csv")
+#Remove unused or irrelevant columns
+train = train %>% dplyr::select(-c(sID,X,Timestamp,Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean,Acc3_Std,time,date))
+test = test %>% dplyr::select(-c(sID,X,Timestamp,Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean,Acc3_Std,time,date))
+#Combine High and Low stress into one category and set stress level to factor
+train$Stress_level <- replace(train$Stress_level,train$Stress_level == 'na',NA)
+train$Stress_level <- replace(train$Stress_level,train$Stress_level == 2,1)
+test$Stress_level <- replace(test$Stress_level,test$Stress_level == 2,1)
+train = train %>% mutate_at("Stress_level", as.factor)
+test = test %>% mutate_at("Stress_level", as.factor)
+#Scale the features 
+trainst = train %>% dplyr::select(-c('Stress_level'))
+trainMean = apply(train%>% dplyr::select(-c('Stress_level')),2,mean)
+trainSd = apply(train%>% dplyr::select(-c('Stress_level')),2,sd)
+
+trainst = sweep(sweep(trainst, 2L, trainMean), 2, trainSd, "/")
+summary(trainst)
+
+testst = sweep(sweep(test%>% dplyr::select(-c('Stress_level')), 2L, trainMean), 2, trainSd, "/")
+summary(testst)
+trainst$Stress_level = train$Stress_level
+testst$Stress_level = test$Stress_level
+#Define train and test x and y sets by separating the Stress_level feature from the predictors
+ytrain <- trainst$Stress_level
+xtrain <- data.matrix(trainst[, c('EDA_Mean', 'EDA_Std', 'EDA_Num_Peaks', 'HR_Mean', 'HR_Std', 'Temp_Mean', 'Temp_Std')])
+ytest <- testst$Stress_level
+xtest <- data.matrix(testst[, c('EDA_Mean', 'EDA_Std', 'EDA_Num_Peaks', 'HR_Mean', 'HR_Std', 'Temp_Mean', 'Temp_Std')])
+```
+```{r}
+#fit lasso regression model using k-fold cross-validation
+cv_model <- cv.glmnet(xtrain, y = as.numeric(ytrain), nfolds = 10, alpha = 1)
+best_lambda <- cv_model$lambda.min
+#display optimal lambda value
+best_lambda
+#view plot of test MSE's vs. lambda values
+plot(cv_model)
+
+# Fit Lasso regression model using the optimal lambda value on the train data
+best_model <- glmnet(xtrain, y=as.numeric(ytrain), alpha = 1, lambda = best_lambda)
+
+# Predict outcome variable using the test data and the fitted model
+y_predicted <- predict(best_model, newx = xtest, s = best_lambda)
+# Convert predicted values to binary using a threshold of 0.5
+y_predicted_binary <- ifelse(y_predicted > 0.5, 1, 0)
+y_predicted_binary <- as.factor(y_predicted_binary)
+levels(y_predicted_binary) <- c(levels(y_predicted_binary), '0')
+# Calculate AUC ROC of the Lasso regression model on the test data
+roc_obj <- roc(ytest, as.numeric(y_predicted_binary))
+auc_roc <- auc(roc_obj)
+auc_roc
+
+# Calculate accuracy of the Lasso regression model on the test data
+accuracy <- mean(y_predicted_binary == ytest)
+accuracy
+#find R-squared of model on training data
+# y_predicted <- predict(best_model, s = best_lambda, newx = x)
+# 
+# sst <- sum((y - mean(y))^2)
+# sse <- sum((y_predicted - y)^2)
+# 
+# rsq <- 1 - sse/sst
+# rsq
+# Make predictions on the test data using the lasso model
+
+# Create a confusion matrix
+lassoconf <- confusionMatrix(y_predicted_binary, ytest)
+
+# Extract the true positive rate from the confusion matrix
+lassosensitivity <- lassoconf$table[2,2] / sum(lassoconf$table[,2])
+w = coef(best_model)
+EDA = (abs(w[2])+abs(w[3])+abs(w[4]))/(abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7])+abs(w[8]))
+HR = (abs(w[5])+abs(w[6]))/(abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7])+abs(w[8]))
+Temp = (abs(w[7])+abs(w[8]))/(abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7])+abs(w[8]))
+```
+```{r}
+#find training accuracy using chosen model parameters by running the model on the 
+#training set
+trainacc = predict(best_model, newx = xtrain, s = best_lambda)
+tacc_binary <- ifelse(trainacc > 0.5, 1, 0)
+tacc_binary <- as.factor(tacc_binary)
+levels(tacc_binary) <- c(levels(tacc_binary), '0')
+# # Create prediction object for ROCR
+roc_obj <- roc(ytrain, as.numeric(tacc_binary))
+auc_tracc <- auc(roc_obj)
+auc_tracc
+# 
+# # Print AUC ROC
+cat("SVM Train AUC ROC: ", auc_tracc, "\n")
+# Train accuracy
+taccuracy <- mean(tacc_binary == ytrain)
+taccuracy
+#Train Sensitivity
+tracc_matrix <- confusionMatrix(tacc_binary, ytrain)
+sensi <- tracc_matrix$table[2,2] / sum(tracc_matrix$table[,2])
+```
