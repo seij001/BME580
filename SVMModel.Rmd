@@ -1,0 +1,177 @@
+---
+title: "SVM Model"
+author: "Achudh Balaraman using SVM demo "
+date: "3/28/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(e1071) # Includes SVM function
+library(caret) # Includes functions we'll use for hyperparameter tuning
+library(tidyverse)
+library(gmodels) # CrossTable()
+library(ROCR)
+```
+
+```{r}
+train = read.csv("data_train_woMiss.csv")
+test = read.csv("data_test_woMiss.csv")
+```
+
+```{r}
+# train <- train %>% filter(Stress_level != "Missing")
+# train <- subset(train, select = c(EDA_Mean, EDA_Std, EDA_Num_Peaks, HR_Mean, HR_Std, Temp_Mean, Temp_Std, Stress_level))
+# test <- test %>% filter(Stress_level != "Missing")
+# test <- subset(test, select = c(EDA_Mean, EDA_Std, EDA_Num_Peaks, HR_Mean, HR_Std, Temp_Mean, Temp_Std, Stress_level))
+# train$Stress_level <- replace(train$Stress_level,train$Stress_level == 2,1)
+# test$Stress_level <- replace(test$Stress_level,test$Stress_level == 2,1)
+
+#Remove unused or irrelevant columns
+train = train %>% dplyr::select(-c(sID,X,Timestamp,Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean,Acc3_Std,time,date))
+test = test %>% dplyr::select(-c(sID,X,Timestamp,Acc1_Mean, Acc1_Std, Acc2_Mean, Acc2_Std, Acc3_Mean,Acc3_Std,time,date))
+
+#Combine High and Low stress into one category and set stress level to factor
+train$Stress_level <- replace(train$Stress_level,train$Stress_level == 'na',NA)
+train$Stress_level <- replace(train$Stress_level,train$Stress_level == 2,1)
+test$Stress_level <- replace(test$Stress_level,test$Stress_level == 2,1)
+train = train %>% mutate_at("Stress_level", as.factor)
+test = test %>% mutate_at("Stress_level", as.factor)
+
+#Scale the features 
+trainst = train %>% dplyr::select(-c('Stress_level'))
+trainMean = apply(train%>% dplyr::select(-c('Stress_level')),2,mean)
+trainSd = apply(train%>% dplyr::select(-c('Stress_level')),2,sd)
+
+trainst = sweep(sweep(trainst, 2L, trainMean), 2, trainSd, "/")
+summary(trainst)
+
+testst = sweep(sweep(test%>% dplyr::select(-c('Stress_level')), 2L, trainMean), 2, trainSd, "/")
+
+trainst$Stress_level = train$Stress_level
+testst$Stress_level = test$Stress_level
+# n = nrow(train)
+# sampleN <- floor(n/20)
+# subindices <- sample(1:n, sampleN, replace = FALSE)
+# trainsub <- train[subindices,]
+#trainst = train %>% dplyr::select(-c('Stress_level'))
+# trainMean = apply(train%>% dplyr::select(-c('Stress_level')) ,2,mean)
+# trainSd = apply(train%>% dplyr::select(-c('Stress_level')) ,2,sd)
+
+#trainst = sweep(sweep(trainst, 2L, trainMean), 2, trainSd, "/")
+#summary(trainst)
+#testst = sweep(sweep(test %>% dplyr::select(-c('Stress_level')), 2L, trainMean), 2, trainSd, "/")
+
+#trainst$Stress_level = train$Stress_level
+#testst$Stress_level = test$Stress_level
+```
+
+```{r}
+#Linear SVM model try
+svmMod = svm(Stress_level~., data = trainst, type = 'C', cost = 1, 
+             kernel =  'linear')
+
+# We can plot a 2D representation of the results using the plot function
+```
+```{r}
+plot(x=svmMod, data = trainst, formula = EDA_Mean~Temp_Mean)
+```
+```{r}
+#Linear SVM optimization
+stressVal = trainControl(method = 'repeatedcv',
+                       repeats = 3,
+                       number = 5)
+
+
+svmCv = train(Stress_level~.,
+              data = trainst,
+              method = 'svmLinear',
+              trControl = stressVal,
+              tuneGrid = expand.grid(C=c(10^seq(from = -3, to = 2, by = .2))),
+              metric = 'Kappa')
+```
+
+```{r}
+optimal_stress = svmCv$bestTune
+originalSVMPred = predict(svmMod, test, type = 'class')
+optSVMPred = predict(svmCv, test, type = 'raw')
+# 
+CrossTable(originalSVMPred, test$Stress_level)
+CrossTable(optSVMPred, test$Stress_level)
+```
+
+
+```{r}
+#Radial optimization after subset parameter optimization
+#Utilized a 1/20 randomly sampled subset of training data to speed up parameter 
+#optimization and significantly reduce run time by choosing targeted parameters
+#for whole data set. 
+stressVal = trainControl(method = 'repeatedcv',
+                       repeats = 1,
+                       number = 5)
+optParamGrid = expand.grid(C=c(1), sigma = c(0.5))
+optRadSVM = train(Stress_level~.,
+                  trainst,
+                  method = 'svmRadial',
+                  tuneGrid = optParamGrid,
+                  trControl = stressVal,
+                  metric = 'Accuracy')
+print(optRadSVM)
+optRadSVM$bestTune
+
+optRadPred = predict(optRadSVM, testst, type = 'raw')
+CrossTable(optRadPred, testst$Stress_level)
+
+# Train SVM radial model using the train data
+#svm_model <- svm(Stress_level ~ ., data = trainst, kernel = "radial", cross = 5, probability = TRUE)
+
+# Make predictions on the test data using the trained model
+# svm_pred <- predict(svm_model, newdata = test, probability = TRUE)
+# 
+# # Create prediction object for ROCR
+pred = prediction(as.numeric(optRadPred),as.numeric(testst$Stress_level))
+# perf <- performance(pred, "tpr", "fpr")
+# plot(perf,main='ROC curve')
+auc_ROCR = performance(pred, measure = "auc")
+auc_ROCR =  auc_ROCR@y.values[[1]] 
+# 
+# # Print AUC ROC
+cat("SVM radial model AUC ROC: ", auc_ROCR, "\n")
+# 
+svm_acc <- sum(optRadPred == testst$Stress_level) / nrow(testst)
+
+# # Plot ROC curve
+# plot(performance(svm_pred_obj, "tpr", "fpr"), main = "SVM ROC Curve", sub = paste("AUC =", round(svm_auc, 3)))
+
+w = colSums(optRadSVM$finalModel@xmatrix[[1]] * optRadSVM$finalModel@coef[[1]])
+```
+```{r}
+#Results
+conf_matrix <- confusionMatrix(optRadPred, testst$Stress_level)
+true_pos_rate <- conf_matrix$table[2,2] / sum(conf_matrix$table[,2])
+EDA = (abs(w[1])+abs(w[2])+abs(w[3]))/(abs(w[1])+abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7]))
+HR = (abs(w[4])+abs(w[5]))/(abs(w[1])+abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7]))
+Temp = (abs(w[6])+abs(w[7]))/(abs(w[1])+abs(w[2])+abs(w[3])+abs(w[4])+abs(w[5])+abs(w[6])+abs(w[7]))
+```
+```{r}
+#find training accuracy using chosen model parameters by running the model on the 
+#training set
+trainerr = predict(optRadSVM, trainst, type = 'raw')
+CrossTable(trainerr, trainst$Stress_level)
+# # Create prediction object for ROCR
+terr = prediction(as.numeric(trainerr),as.numeric(trainst$Stress_level))
+# perf <- performance(pred, "tpr", "fpr")
+# plot(perf,main='ROC curve')
+auc_train = performance(terr, measure = "auc")
+auc_train =  auc_train@y.values[[1]] 
+# 
+# # Print AUC ROC
+cat("SVM Train AUC ROC: ", auc_train, "\n")
+# Training Accuracy calculation
+svm_tacc <- sum(trainerr == trainst$Stress_level) / nrow(trainst)
+svm_tacc
+#Training confusion matrix for sensitivity check
+train_matrix <- confusionMatrix(trainerr, trainst$Stress_level)
+sensi <- train_matrix$table[2,2] / sum(train_matrix$table[,2])
+sensi
+```
+
