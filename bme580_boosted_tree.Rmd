@@ -1,13 +1,13 @@
 ---
 title: "Boosted_decision_tree"
+author: "Seijung Kim"
 output: html_document
 date: "2023-04-10"
 ---
 
 
-
 ```{r setup, include=FALSE}
-library(MASS) # includes two pima datasets
+library(MASS) 
 library(dplyr)
 library(corrplot)
 library(tree)
@@ -32,13 +32,6 @@ head(Data_test, 10)
 # Yes = 1 & 2
 # No = 0
 # Unknown = Missing
-
-# Before running the decision tree, need to make the stress level binary
-# Make two dummy variables that represent this discrimination: 
-# (a)(Yes stress + unknown) vs. no stress 
-# (b) Yes stress vs. (no stress + unknown).
-# Have these in separate dataframes
-
 
 # Remove missing values in the training and test sets
 Data_train <- Data_train %>% filter(Stress_level != "Missing")

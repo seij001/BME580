@@ -1,5 +1,5 @@
 ---
-title: "Decision Tree Models"
+title: "Random Forest Model"
 author: "Seijung Kim, some parts of code adapted from 'DT_RF_Demo' by Zachary Quinn"
 date: "4/9/2023"
 output: pdf_document
@@ -33,13 +33,6 @@ head(Data_test, 10)
 # No = 0
 # Unknown = Missing
 
-# Before running the decision tree, need to make the stress level binary
-# Make two dummy variables that represent this discrimination: 
-# (a)(Yes stress + unknown) vs. no stress 
-# (b) Yes stress vs. (no stress + unknown).
-# Have these in separate dataframes
-
-
 # Remove missing values in the training and test sets
 Data_train <- Data_train %>% filter(Stress_level != "Missing")
 Data_test <- Data_test %>% filter(Stress_level != "Missing")
@@ -66,7 +59,6 @@ Test$Stress_level <- as.factor(Test$Stress_level)
 
 Train
 Test
-
 ```
 
 ```{r}
@@ -78,54 +70,9 @@ ncol(Train)
 
 
 
-```{r}
-# Random Forests (version with no k-fold cross validation)
-
-# mtry = sqrt(p) for classification
-# ntree is default 500 (number of trees to grow), can increase to something like 1000
-# mtry is number of variables in subset considered in each split
-# got this: Warning: invalid mtry: reset to within valid range mtry = 8 (BUT WHY?)
-rf.pima = randomForest(Stress_level~., data = Train, mtry = sqrt(7), ntree = 500) # 500 is default
-rf.pima
-
-
-rfPreds = predict(rf.pima, Test)
-table(Predicted = rfPreds, Actual = Test$Stress_level)
-
-plot(rf.pima)  # find min error rate and return number of trees used in min error rate
-which.min(rf.pima$err.rate)
-
-oob.err = double(7) # out of bag error, mtry = 8 -> OOB error = 5.53%
-test.err = double(7)
-
-# Problematic: mtree=678 is tuning model with knowledge of test data
-# Need to make a second test data set
-# Get all data together and run k-fold cross validation
-# If 2-fold then 2 train & test sets and I can average error in between them)
-# Or have train-validation-test and test set is only used for final test
-for (mtry  in 1:7){
-  fit = randomForest(Stress_level~., data = Train, mtry = mtry, ntree=500)
-  oob.err[mtry] = fit$err.rate[500]
-  pred = predict(fit, Test)
-  test.err[mtry]= length(Test$Stress_level) - sum(ifelse(pred==Test$Stress_level, 1, 0))
-}
-
-# After each iter, stepFactor determines how much mtry is increased
-# improve indicates the amount that oob error must decrease for the mtry search to continue
-tuner = tuneRF(Train[1:7], Train$Stress_level, # specify train and test data
-               stepFactor = .5, # how much you increase mtry
-               plot=T,
-               ntreeTry = 500,
-               improve = 0.1) # oob error must decrease at least 0.1 for mtry search to continue
-
-plot(oob.err)
-plot(test.err)
-```
-
-
 
 ```{r}
-# Apply K-fold cross validation to Random Forest (to "data_train.csv")
+# Apply 5-fold cross validation to Random Forest (to "data_train.csv")
 folds <-createFolds(y=Train$Stress_level, k=5, 
                     list=TRUE, returnTrain=TRUE) # or return test
 sapply(folds, length)
@@ -155,11 +102,10 @@ for (fold in folds){
   oob.err[mtry] = fit$err.rate[500]
   pred = predict(fit, testing_k)
   test.err[mtry]= length(testing_k$Stress_level) - sum(ifelse(pred==testing_k$Stress_level, 1, 0))
-  # changed code to get observations misclassified instead of correctly classified
+  # changed demo code to get observations misclassified instead of correctly classified
   }
 
-  # After each iter, stepFactor determines how much mtry is increased
-  # improve indicates the amount that oob error must decrease for the mtry search to continue
+  # Iterate to find best parameters
   tuner = tuneRF(training_k[1:7], training_k$Stress_level, # specify train and test data
                 stepFactor = .5, # how much you increase mtry
                 plot=T,
@@ -191,10 +137,32 @@ print(auc_sum/5)
 # Use mtry=5 first
 ```
 
+```{r}
+# Find training error
+
+optRf = randomForest(Stress_level~., data = Train, mtry = 5, ntree = 500)
+optPreds = predict(optRf, Train)
+opt_rf_acc = sum(ifelse(optPreds==Train$Stress_level, 1, 0)) / nrow(Train)
+# Make confusion matrix
+table(Predicted = optPreds, Actual = Train$Stress_level)
+
+# Accuracy and Sensitivity = 1
+
+# Find AUC
+pred = prediction(as.numeric(optPreds),as.numeric(Train$Stress_level))
+
+auc_ROCR = performance(pred, measure = "auc")
+auc_ROCR =  auc_ROCR@y.values[[1]]
+  
+print(auc_ROCR) # this is 1 as well
+
+```
 
 ```{r}
-# Analyze accuracy for Random Forest (if tuned well, can have much less overfitting than regular decision tree)
+# Analyze testing performance for Random Forest (if tuned well, can have much less overfitting than regular decision tree)
 
+
+# Use mtry=5 for tuning the tree
 optRf = randomForest(Stress_level~., data = Train, mtry = 5, ntree = 500)
 optPreds = predict(optRf, Test)
 opt_rf_acc = sum(ifelse(optPreds==Test$Stress_level, 1, 0)) / nrow(Test)
@@ -243,7 +211,6 @@ Sensitivity
 ```
 
 
-
 ```{r}
 # Calculate relative importance of sensors
 results = importance(optRf)
@@ -265,9 +232,8 @@ Temp_im
 
 
 
-
 ```{r}
-# Analyze accuracy for Random Forest (if tuned well, can have much less overfitting than regular decision tree)
+# Analyze accuracy for Random Forest when using mtry=6
 
 optRf = randomForest(Stress_level~., data = Train, mtry = 6, ntree = 500)
 optPreds = predict(optRf, Test)
@@ -289,5 +255,5 @@ hist(treesize(optRf),
      main = "No. of Nodes for the Trees",
      col = "green")
 
-# The version with mtry=6 has lower accuracy. Therefore keep using mtry=5.
+# Conclusion: the version with mtry=6 has lower accuracy. Therefore keep using mtry=5.
 ```

@@ -1,5 +1,6 @@
 ---
 title: "BME580_EDA_V2"
+author: "Seijung Kim"
 output: html_document
 date: "2023-04-01"
 ---
@@ -13,26 +14,25 @@ library(gridExtra)
 library(tidyverse)
 library(patchwork)
 library(hms)
+library(e1071)  # for stat analysis
 ```
 
 
 ```{r}
 #DataRead <- read.csv("data_train.csv")
-
 #Data <- dplyr::select(DataRead, -c(X, Unnamed..0.1))
-
 #colnames(Data)[1] = "Person_id"
 #head(Data, 10)
-
 #write.csv(Data, "data_processed.csv", row.names=FALSE)
 
 
-DataRead <- read.csv("data_train.csv")
+# Load data
+DataRead <- read.csv("data_train_woMiss.csv")
 head(DataRead, 10)
 ```
 
 ```{r}
-# Recreating Correlation Matrices, also include missing stress level data
+# Creating new Correlation Matrices, also include missing stress level data
 # Also get summary statistics
 
 # Select numeric variables
@@ -129,31 +129,29 @@ ggsave("Density_graphs.png", plot = Density_plot)
 
 
 ```{r}
-# Get summary statistics for each dataframe
+# Get summary statistics for EDA distribution
 print("Missing stress level")
-#miss_stress
-#summary(miss_stress)
-skewness(miss_stress)
-kurtosis(miss_stress)
+summary(miss_stress)
+skewness(miss_stress$EDA_Mean)
+kurtosis(miss_stress$EDA_Mean)
 
 print("All stress level")
-#all_stress <- filter(numeric_df, Stress_level == 0 | Stress_level == 1 | Stress_level == 2)
-#summary(all_stress)
-skewness(all_stress)
-kurtosis(all_stress)
+summary(all_stress)
+skewness(all_stress$EDA_Mean)
+kurtosis(all_stress$EDA_Mean)
 
 print("No stress level")
-#summary(no_stress)
-skewness(no_stress)
-kurtosis(no_stress)
+summary(no_stress)
+skewness(no_stress$EDA_Mean)
+kurtosis(no_stress$EDA_Mean)
 
 print("Low stress level")
-#summary(low_stress)
-skewness(low_stress)
-kurtosis(low_stress)
+summary(low_stress)
+skewness(low_stress$EDA_Mean)
+kurtosis(low_stress$EDA_Mean)
 
 print("High stress level")
-#summary(high_stress)
-skewness(high_stress)
-kurtosis(high_stress)
+summary(high_stress)
+skewness(high_stress$EDA_Mean)
+kurtosis(high_stress$EDA_Mean)
 ```
