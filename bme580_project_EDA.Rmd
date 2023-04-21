@@ -1,5 +1,6 @@
 ---
 title: "BME580_porject_EDA"
+author: "Seijung Kim, some parts of code adapted from EDA demo by Zachary Quinn"
 output:
   pdf_document: default
   html_document: default
@@ -21,18 +22,19 @@ library(hms)
 DataRead <- read.csv("stress_all_sensor.csv")
 head(DataRead, 10)
 # stress level: 0 = no stress; 1 = low stress; 2 = high stress
+
+# Data Description:
+
 # EDA (Data from the electrodermal activity sensor expressed as microsiemens (μS))
 # HR (extracted from the BVP, The first row is the initial time of the session expressed as unix timestamp in UTC.
 # The second row is the sample rate expressed in Hz.)
 # TEMP (Celsius (°C))
 #ACC (Data from 3-axis accelerometer sensor. The accelerometer is configured to measure acceleration in the range [-2g, 2g]. 
-# Therefore the unit in this file is 1/64g.
-# Data from x, y, and z axis are respectively in first, second, and third column.)
 ```
 
 
 ```{r}
-# Correlation Matrices
+# Create Correlation Matrices
 
 # Select numeric variables & Remove all NA values
 numeric_df = DataRead %>% select(c(EDA, HR, TEMP, ACC1, ACC2, ACC3, Stress_level))
@@ -121,6 +123,7 @@ EDA_plot
 
 
 ```{r}
+# See what it looks like when adjusting the scale of stress level curve
 EDA_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = Amplified_stress, color="Stress Level"))+
   geom_line(aes(y = EDA, color = "EDA"))+
@@ -135,6 +138,7 @@ EDA_plot
 ```
 
 ```{r}
+# Create plots of the sensor recordings
 Stress_plot = ggplot(Recording, aes(x=TimeElapsed)) + 
   geom_line(aes(y = Stress_level, color="Stress Level"), color = "purple")+
   theme(text = element_text(family="Times New Roman", face="bold", size=14))+
