@@ -19,3 +19,8 @@ Currently, the R scripts for our pre-processing and Exploratory Data Analysis ar
 3. **PCA_stress.Rmd** : Jiayue's script for PCA. performs PCA analysis on the stress dataset. You need **stress_all_sensor.csv** file to run this code. 
 4. **Preprocessing.ipynb**: the code for combining all sensor data and survey results. Make sure you download the **Stress_dataset** (and unzip all the indivisual folders) and **SurveyResults.xlsx** to run this code. This code generates **data_train_woMiss** and **data_test_woMiss.csv** files. 
 5. **LDA_stress.Rmd** : script for the LDA analysis, make sure you download the **data_train_woMiss.csv** and **data_test_woMiss.csv** to run this code. 
+6. **Lasso.Rmd** : script for Lasso Regression model be sure to download the **data_train_woMiss.csv** and **data_test_woMiss.csv** to run this code. 
+7. **SVMModel.Rmd** : script for SVM radial model be sure to download the **data_train_woMiss.csv** and **data_test_woMiss.csv** to run this code. 
+8. **PCAtrain.Rmd** : script for PCA of training dataset be sure to download **data_train_woMiss.csv** to run this code
+*PCAtrain.nb.html : output file of PCAtrain.Rmd 
+*PCAtrain.png - output graph of PCAtrain.Rmd
